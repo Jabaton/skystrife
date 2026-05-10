@@ -10,7 +10,7 @@
     "build:abi-ts": "mud abi-ts",
     "build:mud": "rimraf src/codegen && pnpm run templategen && mud tablegen && mud worldgen",
     "----- EXTERNAL -----": "---------------------------",
-    "devnode": "anvil --base-fee 0 --block-time 2",
+    "devnode": "anvil --base-fee 0",
     "test": "PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 DEBUG=mud:* mud test",
     "gas-report": "PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 GAS_REPORTER_ENABLED=true mud test --forgeOptions='-vvv' | gas-report --save gas-report.json --stdin",
     "dev": "pnpm run templategen && DEBUG=mud:* PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 pnpm mud deploy --salt 0x80081e --rpc=http://127.0.0.1:8545 && CHAIN_ID=31337 PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 pnpm  tsx ./runDeployScripts.ts",

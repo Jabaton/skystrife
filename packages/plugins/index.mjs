@@ -46,22 +46,36 @@ wss.on('connection', function connection(ws) {
   console.log('A client connected');
 });
 
-// Watch the plugin directory for changes
-fs.watch(pluginPath, { recursive: true }, (eventType, filename) => {
-  if (filename) {
-    console.log(`File changed: ${filename}`);
-    console.log(`emitting: ${path.join(pluginDirName, filename)}`)
-    // Emit a message to all connected clients
-    wss.clients.forEach(function each(client) {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify({
-          eventType,
-          path: path.join(pluginDirName, filename)
-        }));
-      }
-    });
+// Watch the plugin directory for changes.
+// `recursive: true` is unavailable on Linux for Node < 20.13, so try it first
+// and fall back to a non-recursive watch (the `dev/` directory is flat anyway).
+function startWatcher(options) {
+  return fs.watch(pluginPath, options, (eventType, filename) => {
+    if (filename) {
+      console.log(`File changed: ${filename}`);
+      console.log(`emitting: ${path.join(pluginDirName, filename)}`);
+      wss.clients.forEach(function each(client) {
+        if (client.readyState === 1) {
+          client.send(JSON.stringify({
+            eventType,
+            path: path.join(pluginDirName, filename)
+          }));
+        }
+      });
+    }
+  });
+}
+
+try {
+  startWatcher({ recursive: true });
+} catch (err) {
+  if (err && err.code === 'ERR_FEATURE_UNAVAILABLE_ON_PLATFORM') {
+    console.warn('Recursive fs.watch unavailable on this platform; falling back to non-recursive watch.');
+    startWatcher({});
+  } else {
+    throw err;
   }
-});
+}
 
 server.listen(1993, () => {
   console.log('Plugin Dev Server running at http://localhost:1993');

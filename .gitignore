@@ -4,3 +4,4 @@ node_modules
 .yalc
 .parcel-cache
 .mudbackup
+.start-logs/

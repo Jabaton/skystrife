@@ -12,7 +12,7 @@ import { HistoricalMatches } from "./HistoricalMatches";
 import { useEntityQuery } from "@latticexyz/react";
 import { Entity, Has, HasValue, Not, getComponentValue, runQuery } from "@latticexyz/recs";
 import { Matchmaking } from "../Matchmaking";
-import { useSeasonTimes } from "../hooks/useSeasonTimes";
+import { useAuth } from "../../../auth/AuthContext";
 
 enum Tabs {
   Play = "play",
@@ -28,7 +28,7 @@ export function MatchTable() {
   } = useAmalgema();
 
   const [currentTab, setCurrentTab] = useState<Tabs>(Tabs.Play);
-  const { isSeasonActive } = useSeasonTimes();
+  const { isAdmin } = useAuth();
 
   const openMatches = useEntityQuery([
     Has(MatchConfig),
@@ -118,32 +118,34 @@ export function MatchTable() {
 
         <div className="grow" />
 
-        {isSeasonActive && (
-          <div className="flex">
-            <Button
-              buttonType="primary"
-              size="lg"
-              onClick={() => {
-                if (!externalWalletClient) {
-                  if (openConnectModal) openConnectModal();
-                  return;
-                }
+        <div className="flex">
+          {isAdmin && (
+            <>
+              <Button
+                buttonType="primary"
+                size="lg"
+                onClick={() => {
+                  if (!externalWalletClient) {
+                    if (openConnectModal) openConnectModal();
+                    return;
+                  }
 
-                setModalOpen(true);
-              }}
-            >
-              <div className="flex flex-row items-center justify-center h-fit">
-                <Plus /> <div className="w-4" /> <span>create match</span>
-              </div>
-            </Button>
+                  setModalOpen(true);
+                }}
+              >
+                <div className="flex flex-row items-center justify-center h-fit">
+                  <Plus /> <div className="w-4" /> <span>create match</span>
+                </div>
+              </Button>
 
-            {summonIslandModal}
+              {summonIslandModal}
 
-            <div className="w-4" />
+              <div className="w-4" />
+            </>
+          )}
 
-            <Matchmaking />
-          </div>
-        )}
+          <Matchmaking />
+        </div>
       </div>
 
       <div className="h-6 shrink-0" />

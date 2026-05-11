@@ -5,9 +5,9 @@ import { useObservableValue } from "../../useObservableValue";
 import { filterNullish } from "@latticexyz/utils";
 import { NetworkLayer } from "../../layers/Network";
 import { Button } from "../ui/Theme/SkyStrife/Button";
-import { Body, Caption, Link, OverlineLarge } from "../ui/Theme/SkyStrife/Typography";
+import { Body, OverlineLarge } from "../ui/Theme/SkyStrife/Typography";
 import { Card } from "../ui/Theme/SkyStrife/Card";
-import { DISCORD_URL, HOW_TO_PLAY_URL, LATTICE_URL, MUD_URL } from "../links";
+import { HOW_TO_PLAY_URL } from "../links";
 import { SyncStep } from "@latticexyz/store-sync";
 import { singletonEntity } from "@latticexyz/store-sync/recs";
 import { useStore } from "../../useStore";
@@ -205,8 +205,8 @@ export const LoadingScreen = ({ networkLayer, usePrepTime }: Props) => {
 
   const doneLoading = usePrepTime ? prepareGameProgress === 100 : loadingState.step === SyncStep.LIVE;
   useEffect(() => {
-    if (doneLoading && isMatch && worldValid) setHide(true);
-  }, [doneLoading, isMatch, worldValid]);
+    if (doneLoading && worldValid) setHide(true);
+  }, [doneLoading, worldValid]);
 
   const showPrepMessage = loadingState.step === SyncStep.LIVE && usePrepTime;
 
@@ -261,7 +261,7 @@ export const LoadingScreen = ({ networkLayer, usePrepTime }: Props) => {
 
         {!doneLoading && (
           <div className="flex flex-col grow items-center mt-4 text-center">
-            <Body>Sky Strife is a fast-paced, onchain RTS game running on Redstone.</Body>
+            <Body>Loading the world...</Body>
 
             <div className="h-4"></div>
 
@@ -270,37 +270,6 @@ export const LoadingScreen = ({ networkLayer, usePrepTime }: Props) => {
                 How To Play
               </Button>
             </a>
-          </div>
-        )}
-
-        {doneLoading && worldValid && (
-          <div className="flex flex-col grow pointer-events-auto">
-            <Body className="px-4 mt-4 text-center text-sm font-thin">
-              By clicking &apos;I agree&apos;, you acknowledge that you (i) agree to the{" "}
-              <Link className="" href={"/terms.pdf"}>
-                Terms of Service
-              </Link>{" "}
-              and (ii) have read and understood our <Link href={"/privacy-policy"}>Privacy Policy</Link>.
-            </Body>
-
-            <div className="h-3" />
-
-            <Button
-              buttonType="primary"
-              size="lg"
-              onClick={() => {
-                if (networkLayer)
-                  networkLayer.utils.sendAnalyticsEvent("loading-screen", {
-                    hideClicked: getNowSeconds(),
-                    matchEntity: networkLayer.network.matchEntity,
-                    blockNumber: loadingState.lastBlockNumberProcessed.toString(),
-                  });
-                setHide(true);
-              }}
-              className="w-full"
-            >
-              I agree
-            </Button>
           </div>
         )}
 
@@ -333,45 +302,6 @@ export const LoadingScreen = ({ networkLayer, usePrepTime }: Props) => {
       </Card>
 
       <div className="stretch"></div>
-
-      <div className="flex justify-between stretch">
-        <div className="absolute bottom-6 left-6 flex justify-between">
-          <Link className="text-ss-gold" href={LATTICE_URL}>
-            lattice.xyz
-          </Link>
-
-          <div className="w-6 text-center text-ss-divider-stroke">|</div>
-
-          <Link className="text-ss-gold" href={DISCORD_URL}>
-            join discord
-          </Link>
-
-          <div className="w-6 text-center text-ss-divider-stroke">|</div>
-
-          <Link className="text-ss-gold" href={HOW_TO_PLAY_URL}>
-            getting started
-          </Link>
-
-          <div className="w-6 text-center text-ss-divider-stroke">|</div>
-
-          <Link className="text-ss-gold" href={"/privacy-policy"}>
-            privacy policy
-          </Link>
-
-          <div className="w-6 text-center text-ss-divider-stroke">|</div>
-
-          <Link className="text-ss-gold" href={"/terms.pdf"}>
-            terms of service
-          </Link>
-        </div>
-
-        <Caption className="absolute bottom-6 right-6 ml-4 text-neutral-300">
-          powered by{" "}
-          <Link className="text-ss-gold" href={MUD_URL}>
-            MUD
-          </Link>
-        </Caption>
-      </div>
     </div>
   );
 };

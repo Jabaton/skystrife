@@ -1,44 +1,45 @@
 # Sky Strife — Discord + Phantom + Solana test plan
 
-Этот документ — чек-лист по новому функционалу из PR #2.
-Идём сверху вниз, отмечаем галочкой пройденные пункты, в комментах PR пишем
-номера тех, что сломались, со скриншотом/логом.
+End-to-end test checklist for everything in PR #2.
+Walk top-to-bottom, tick boxes as you go, drop broken-item numbers (with
+a screenshot/log) as PR comments.
 
 ---
 
 ## 0. Prerequisites
 
-- [ ] Node 18.16.1, pnpm 8, Foundry 1.0.0 — см. `INSTALL.md §1–§5`.
-- [ ] Mud сиблингом, на коммите `e85dc5349`, собран — `INSTALL.md §6–§9`.
-- [ ] В корне проекта выполнен `pnpm install` без ошибок.
-- [ ] Установлен Phantom wallet в браузере (https://phantom.app/download).
-- [ ] Phantom переключён на **Devnet** (Settings → Developer Settings → Testnet Mode → Devnet).
-- [ ] В Phantom есть хотя бы **0.05 SOL** на devnet (попроси через https://faucet.solana.com).
+- [ ] Node 18.16.1, pnpm 8, Foundry 1.0.0 — see `INSTALL.md` sections 1–5.
+- [ ] MUD cloned as a sibling at commit `e85dc5349`, built — `INSTALL.md` sections 6–9.
+- [ ] At repo root `pnpm install` completes without errors.
+- [ ] Phantom wallet installed in your browser (https://phantom.app/download).
+- [ ] Phantom is switched to **Devnet** (Settings → Developer Settings → Testnet Mode → Devnet).
+- [ ] Your Phantom wallet has at least **0.05 SOL** on devnet (faucet: https://faucet.solana.com).
 
-## 1. Конфигурация auth-server
+## 1. auth-server configuration
 
-- [ ] `packages/auth-server/.env` создан по образцу `.env.example`.
-- [ ] В нём заполнены:
+- [ ] `packages/auth-server/.env` exists (copy from `.env.example`).
+- [ ] Filled in:
   - [ ] `DISCORD_CLIENT_ID`
   - [ ] `DISCORD_CLIENT_SECRET`
   - [ ] `DISCORD_BOT_TOKEN`
   - [ ] `DISCORD_GUILD_ID`
   - [ ] `DISCORD_CHANNEL_ID`
-  - [ ] `DISCORD_ADMIN_USER_ID` (твой Discord user id)
-  - [ ] `JWT_SECRET` (длинная случайная строка)
+  - [ ] `DISCORD_ADMIN_USER_ID` (your Discord user id)
+  - [ ] `JWT_SECRET` (long random string)
   - [ ] `SOLANA_ESCROW_PRIVATE_KEY` (base58)
-  - [ ] `SOLANA_ESCROW_PUBKEY` (base58, соответствует приватнику)
+  - [ ] `SOLANA_ESCROW_PUBKEY` (base58, must match the private key)
   - [ ] `SOLANA_CLUSTER=devnet`
-- [ ] В Discord Developer Portal → OAuth2 → Redirects добавлен:
+- [ ] In the Discord Developer Portal → OAuth2 → Redirects you added:
   `http://localhost:1337/api/auth/discord/callback`.
-- [ ] Discord-бот **уже состоит** в гильдии `DISCORD_GUILD_ID` (иначе `guilds.join` не сработает).
-- [ ] Эскроу-кошелёк (адрес `SOLANA_ESCROW_PUBKEY`) зафанжен хотя бы на 0.05 SOL
-      на devnet, чтобы хватило на gas при выплатах
-      (https://faucet.solana.com → вставить адрес).
+- [ ] The Discord bot is **already a member** of guild `DISCORD_GUILD_ID`
+      (use the bot invite URL Devin shared). Otherwise `guilds.join` won't work.
+- [ ] The escrow wallet (`SOLANA_ESCROW_PUBKEY`) has at least 0.05 SOL on devnet,
+      so it can pay the tiny network fee on payout/refund transactions
+      (faucet: https://faucet.solana.com → paste the escrow address).
 
-## 2. Запуск стека
+## 2. Stack startup
 
-- [ ] `./start.sh --background` отрабатывает без ошибок и пишет в конце:
+- [ ] `./start.sh --background` finishes successfully and prints something like:
   ```
   ok  client:  http://localhost:1337
   ok  plugins: http://localhost:1993
@@ -47,156 +48,154 @@
   ```
 - [ ] `curl -s http://localhost:3002/health` → `{"ok":true}`
 - [ ] `curl -s http://localhost:3002/api/stake/escrow`
-      → `{"cluster":"devnet","pubkey":"…"}` с твоим адресом эскроу.
+      → `{"cluster":"devnet","pubkey":"…"}` showing your escrow address.
 
-## 3. Splash screen и LoginScreen
+## 3. Splash screen and LoginScreen
 
-- [ ] При открытии `http://localhost:1337/` НЕ показывается
-      "I agree" / нижние линки lattice.xyz / join discord / terms.
-- [ ] Вместо этого виден **LoginScreen** с шагом 1 "Войти через Discord".
-- [ ] Никаких ETH-кошельков / MetaMask-попапов на старте **не появляется**.
+- [ ] Opening `http://localhost:1337/` does NOT show
+      "I agree" / lattice.xyz bottom links / "join discord" / terms.
+- [ ] Instead you see the **LoginScreen** with step 1 "Sign in with Discord".
+- [ ] No ETH-wallet / MetaMask popups appear at startup.
 
 ## 4. Discord OAuth
 
-- [ ] Клик "Войти через Discord" редиректит на `discord.com/oauth2/authorize?...`.
-- [ ] После approve редирект обратно на `/` без ошибок.
-- [ ] Если ты не был в гильдии, бот сам тебя добавил
-      (Discord-уведомление "You've been added to <server>").
-- [ ] В UI отображается твой `global_name` (display name), а не `username#1234`.
+- [ ] Clicking "Sign in with Discord" redirects you to `discord.com/oauth2/authorize?...`.
+- [ ] After Approve you are redirected back to `/` without errors.
+- [ ] If you were not in the guild, the bot added you automatically
+      (Discord notification: "You've been added to <server>").
+- [ ] The UI shows your `global_name` (display name), not `username#1234`.
 
 ## 5. Phantom wallet bind
 
-- [ ] LoginScreen перешёл к шагу 2 "Подключи Phantom".
-- [ ] Клик "Connect Phantom" → Phantom открывается, просит approve connect.
-- [ ] После approve Phantom просит подписать SIWS-сообщение
+- [ ] LoginScreen moved to step 2 "Connect Phantom".
+- [ ] Clicking "Connect Phantom Wallet" → Phantom opens, asks to approve connect.
+- [ ] After approve Phantom asks you to sign the SIWS message
       ("Sky Strife wants you to sign in with your Solana account: …").
-- [ ] После подписи LoginScreen пропадает, открывается главное меню (Amalgema).
-- [ ] **Перезагрузи страницу** — должно сразу открыться главное меню,
-      без LoginScreen (сессия в JWT-cookie сохранилась 30 дней).
+- [ ] After signing, LoginScreen disappears and the main menu (Amalgema) opens.
+- [ ] **Reload the page** — main menu loads immediately, no LoginScreen
+      (the JWT session cookie is good for 30 days).
 
-## 6. UI чистка главного меню
+## 6. Main-menu UI cleanup
 
-Проверь, что в главном меню (`/`):
+On `/`, confirm:
 
-- [ ] В шапке нет "powered by MUD".
-- [ ] Нет "Sky Strife Season 2!" / Season-баннера.
-- [ ] Нет "Match Creation Cost in Orbs" / "MINT 0.030 ETH".
-- [ ] Нет "Welcome to Sky Strife / Redstone gas" модалки.
-- [ ] Нет "Synced — Switch to Foundry" индикатора.
-- [ ] Иконка соцсети в правой колонке — **X** (квадратный логотип), не птица.
-- [ ] В сайдбаре справа показана карточка Discord-профиля:
-  - [ ] аватарка из Discord
+- [ ] The header has no "powered by MUD".
+- [ ] No "Sky Strife Season 2!" / season banner.
+- [ ] No "Match Creation Cost in Orbs" / "MINT 0.030 ETH".
+- [ ] No "Welcome to Sky Strife / Redstone gas" modal.
+- [ ] No "Synced — Switch to Foundry" indicator.
+- [ ] The social icon in the right column is **X** (square logo), not the bird.
+- [ ] The right sidebar shows a Discord profile card:
+  - [ ] Discord avatar
   - [ ] `global_name`
   - [ ] `@username`
-  - [ ] `ADMIN` (золотая надпись), если ты — `DISCORD_ADMIN_USER_ID`
-  - [ ] адрес Solana wallet (укорочен `XXXX…YYYY`)
-  - [ ] метка кластера `devnet`
-  - [ ] кнопки `unbind wallet` / `logout`
+  - [ ] `ADMIN` (gold label) if your id equals `DISCORD_ADMIN_USER_ID`
+  - [ ] Solana wallet address (truncated `XXXX…YYYY`)
+  - [ ] Cluster label `devnet`
+  - [ ] `unbind wallet` / `logout` buttons
 
 ## 7. Admin gate
 
-Зайди под **админ-аккаунтом** (id == `DISCORD_ADMIN_USER_ID`):
+Logged in as **admin** (id matches `DISCORD_ADMIN_USER_ID`):
 
-- [ ] Кнопка **create match** видна над списком матчей.
+- [ ] The **create match** button is visible above the match list.
 
-Залогинься под **не-админ** аккаунтом (другой Discord, или временно поменяй
-`DISCORD_ADMIN_USER_ID` на чужой и перезапусти auth-server):
+Logged in as **non-admin** (different Discord, or temporarily set
+`DISCORD_ADMIN_USER_ID` to someone else and restart auth-server):
 
-- [ ] Кнопка **create match** скрыта.
-- [ ] Видна только кнопка **Matchmaking** (присоединиться к случайному).
+- [ ] The **create match** button is hidden.
+- [ ] Only the **Matchmaking** button (join a random match) is visible.
 
 ## 8. Solana Pool — admin flow
 
-Откройте `http://localhost:1337/pool` (или через кнопку **SOL Stake Pool →** в сайдбаре).
+Open `http://localhost:1337/pool` (or click **SOL Stake Pool →** in the sidebar).
 
-- [ ] Видим заголовок "Solana Stake Pool".
-- [ ] В блоке Escrow показан адрес и текущий баланс в SOL.
-- [ ] Под админ-аккаунтом видна форма "create new stake match":
-  - [ ] Ввод 0.01 → "create match" → новая строка появилась.
+- [ ] You see the "Solana Stake Pool" heading.
+- [ ] The Escrow card shows the address and current SOL balance.
+- [ ] As admin you see the "create new stake match" form:
+  - [ ] Enter `0.01` → click "create match" → a new row appears.
   - [ ] Status `open`, players 0, pool 0 SOL.
-- [ ] Под НЕ-админом этой формы нет, есть только список матчей.
+- [ ] As non-admin the form is hidden, only the list is visible.
 
 ## 9. Solana Pool — player join
 
-Под обычным игроком (или тем же админом — это нормально):
+As any player (the admin works fine too):
 
-- [ ] На своей открытой матче клик **stake X SOL & join**.
-- [ ] Phantom попросил approve transfer X SOL на эскроу.
-- [ ] После approve кнопка ушла в `…signing`, потом исчезла.
-- [ ] В строке появилась запись `XXXX… (you) X SOL`.
-- [ ] `https://explorer.solana.com/address/{escrow}?cluster=devnet` показывает
-      входящую транзакцию.
-- [ ] Если повторно нажать "stake" — ошибка "already joined".
-- [ ] Если кошелёк пустой — ошибка от Phantom "insufficient funds".
+- [ ] On an open match click **stake X SOL & join**.
+- [ ] Phantom prompts you to approve a transfer of X SOL to the escrow.
+- [ ] After approve the button shows `…signing`, then disappears.
+- [ ] The row gains an entry `XXXX… (you) X SOL`.
+- [ ] `https://explorer.solana.com/address/{escrow}?cluster=devnet`
+      shows the incoming transaction.
+- [ ] Clicking "stake" again → error "already joined".
+- [ ] If the wallet is empty → Phantom error "insufficient funds".
 
 ## 10. Solana Pool — finish & payout
 
-Для этого нужно **двух** игроков (можно через два браузера / два Discord-аккаунта,
-оба должны застейкать в один матч).
+This needs **two** stakers (e.g. two browsers / two Discord accounts,
+both stake into the same match).
 
-Под админом:
+As admin:
 
-- [ ] У строки матча появился ряд кнопок "finish & pay: [me] [XXXX] …"
-      (по одной на каждого застейкавшегося).
-- [ ] Клик по нужному игроку → status матча меняется на `paid`,
-      появляется строка "Winner paid Y SOL. tx: …".
-- [ ] Кошелёк победителя пополнился на 2× ставку (минус сетевая комиссия).
-- [ ] Проигравший потерял свою ставку — баланс не вернулся.
+- [ ] The match row now has a row of "finish & pay: [me] [XXXX] …" buttons,
+      one per staker.
+- [ ] Clicking the chosen winner → match status flips to `paid`,
+      a "Winner paid Y SOL. tx: …" line appears.
+- [ ] The winner's wallet got 2× the stake (minus a tiny network fee).
+- [ ] The loser lost their stake — balance did not return.
 
 ## 11. Solana Pool — cancel & refund
 
-- [ ] Создай новый матч, застейкай в него 2 игроков.
-- [ ] Админ нажал **cancel & refund** → подтверждение.
-- [ ] Статус матча → `cancelled`.
-- [ ] Оба игрока получили обратно свою ставку (минус сетевая комиссия).
+- [ ] Create a fresh match, stake from two players.
+- [ ] Admin clicks **cancel & refund** → confirmation.
+- [ ] Match status → `cancelled`.
+- [ ] Both players got their stake back (minus a tiny network fee).
 
 ## 12. Logout
 
-- [ ] Клик `logout` в сайдбаре → редирект на LoginScreen.
-- [ ] Перезагрузка страницы — LoginScreen остаётся.
+- [ ] Click `logout` in the sidebar → redirected back to LoginScreen.
+- [ ] Page reload — LoginScreen persists.
 
-## 13. Тест ошибок (необязательно)
+## 13. Error states (optional)
 
-- [ ] Если auth-server упал (kill `pid auth.pid`) — клиент при логине
-      показывает "Failed to start Discord login" или похожую ошибку,
-      не падает в белый экран.
-- [ ] Если Phantom не установлен — кнопка показывает ссылку на
-      https://phantom.app/download.
-- [ ] Если в .env нет `DISCORD_ADMIN_USER_ID` — auth-server при создании
-      матча (`POST /api/stake/match`) возвращает 403 "admin only".
+- [ ] If auth-server is down (e.g. `kill $(cat .start-logs/pids/auth.pid)`)
+      the client shows "Failed to start Discord login" or similar — does not
+      crash to a white screen.
+- [ ] If Phantom is not installed, the button shows the
+      https://phantom.app/download link.
+- [ ] If `.env` lacks `DISCORD_ADMIN_USER_ID`, `POST /api/stake/match` returns
+      403 "admin only".
 
 ---
 
-## Что ЕЩЁ НЕ работает в этом PR (известные ограничения)
+## Known limitations in this PR
 
-1. **Игровой матч и SOL pool — две отдельные сущности.**
-   В этом PR `/pool` — чистая Solana-логика, она пока **не связана** с
-   созданием игрового MUD-матча. То есть админ создаёт MUD-матч обычной
-   кнопкой `create match` (старый Orb-flow MUD), а ставки на SOL
-   управляет отдельно в `/pool`.
+1. **In-game match and SOL pool are two separate things.**
+   `/pool` is pure Solana logic; it is NOT yet linked to creating a MUD game match.
+   The admin still creates a MUD match via the old `create match` button (the
+   legacy Orb flow inside MUD), and SOL stakes are managed independently on `/pool`.
+   The "create MUD match → automatically create the SOL stake → auto-payout on
+   MatchFinished" wiring will be done in the next commit on this same branch
+   once the foundation is confirmed working.
 
-   Связку "создал MUD-матч → автоматически создаётся SOL stake" сделаю в
-   следующем коммите этого же PR, как только подтвердишь, что нижняя
-   часть (auth + pool) работает.
-
-2. **Авто-выплата по событию MatchFinished.**
-   Сейчас победителя в SOL pool выбирает админ кнопкой. В следующем
-   коммите auth-server будет слушать MUD `MatchFinished`-событие и
-   автоматически дёргать `/finish` с правильным `winner_discord_id`.
+2. **Auto-payout on the MatchFinished event.**
+   For now the admin picks the winner via the UI button. The next commit will
+   make auth-server listen to MUD's `MatchFinished` event on local anvil and
+   call `/finish` automatically with the right `winner_discord_id`.
 
 3. **In-game username = Discord global_name.**
-   В сайдбаре имя из Discord, но если зайдёшь в `/match`, юниты
-   подписаны старым on-chain `Name`. Это поправлю отдельным коммитом.
+   The sidebar already pulls the name from Discord, but inside `/match`
+   the unit labels still use the on-chain `Name`. That'll be a follow-up.
 
-4. **ETH-комиссии под капотом.**
-   Игровые транзакции к MUD всё ещё подписываются session wallet'ом на
-   локальном anvil — пользователь это не видит, ETH-комиссии бесплатные
-   (anvil), но архитектурно слой остаётся. Полное удаление ETH из UI
-   завершено; полное удаление из network layer — в Phase B.
+4. **ETH fees under the hood.**
+   Game transactions to MUD are still signed by the session wallet on local
+   anvil. The user doesn't see this and ETH fees are free (anvil), but the
+   underlying layer remains. The visible ETH removal in the UI is complete;
+   full removal from the network layer is Phase B.
 
 ---
 
-## Куда писать про ошибки
+## Where to report bugs
 
-Прямо в PR #2 inline-комментариями, или в issues — приложи скриншот и
-номер пункта из чек-листа.
+Comment directly inline on PR #2 with the section number from this checklist
+and a screenshot.

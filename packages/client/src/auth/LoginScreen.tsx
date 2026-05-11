@@ -69,8 +69,8 @@ export function LoginScreen() {
         {step === "discord" && (
           <>
             <div className="text-center text-sm text-neutral-700 max-w-[400px]">
-              Чтобы зайти в игру, авторизуйся через Discord. Никнейм будет взят из твоего профиля и
-              сохранится между матчами.
+              Sign in with Discord to play. Your in-game name will be taken from your Discord
+              display name and stays the same across matches.
             </div>
             <div className="h-6" />
             <button
@@ -88,7 +88,7 @@ export function LoginScreen() {
                 cursor: busy ? "wait" : "pointer",
               }}
             >
-              {busy === "discord" ? "Открываю Discord..." : "Войти через Discord"}
+              {busy === "discord" ? "Opening Discord..." : "Sign in with Discord"}
             </button>
           </>
         )}
@@ -96,12 +96,12 @@ export function LoginScreen() {
         {step === "wallet" && (
           <>
             <div className="text-center text-sm text-neutral-700">
-              Привет, <b>{user!.global_name ?? user!.username}</b>!
+              Hi, <b>{user!.global_name ?? user!.username}</b>!
             </div>
             <div className="h-2" />
             <div className="text-center text-sm text-neutral-700 max-w-[420px]">
-              Теперь подключи кошелёк Phantom — на него будут начисляться выигрыши, и с него
-              списываются ставки. Сеть: <b>{solanaCluster ?? "devnet"}</b>.
+              Now connect your Phantom wallet — match winnings will be paid to it and your
+              stakes will be charged from it. Network: <b>{solanaCluster ?? "devnet"}</b>.
             </div>
             <div className="h-6" />
             {phantomInstalled ? (
@@ -120,7 +120,7 @@ export function LoginScreen() {
                   cursor: busy ? "wait" : "pointer",
                 }}
               >
-                {busy === "phantom" ? "Жду подписи в Phantom..." : "Подключить Phantom Wallet"}
+                {busy === "phantom" ? "Waiting for Phantom signature..." : "Connect Phantom Wallet"}
               </button>
             ) : (
               <a
@@ -139,7 +139,7 @@ export function LoginScreen() {
                   textDecoration: "none",
                 }}
               >
-                Установить Phantom Wallet
+                Install Phantom Wallet
               </a>
             )}
 
@@ -149,7 +149,7 @@ export function LoginScreen() {
               className="text-xs text-neutral-500 underline"
               type="button"
             >
-              Не я — выйти
+              Not me — sign out
             </button>
           </>
         )}

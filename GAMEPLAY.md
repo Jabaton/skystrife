@@ -1,25 +1,25 @@
-# Sky Strife — как устроен проект и как играть
+# Sky Strife — project overview & gameplay guide
 
-## Что это
+## What is it
 
-Sky Strife — это **онлайн-RTS на блокчейне**, написанная на фреймворке
-[MUD](https://mud.dev). Все ключевые игровые сущности — юниты, постройки,
-ходы, золото, бои, имена игроков, владение матчем — это **записи в смарт-контрактных
-таблицах**. Клиент в браузере подписывается на эти таблицы через RPC и
-рендерит игру через Phaser.
+Sky Strife is an **online blockchain RTS** built on the
+[MUD](https://mud.dev) framework. All key game entities — units, buildings,
+moves, gold, battles, player names, match ownership — are **records in
+smart-contract tables**. The browser client subscribes to those tables via
+RPC and renders the game with Phaser.
 
-Если коротко: «Civilization-меньше-Civilization, где сервер — это смарт-контракт».
+In short: "a Civilization-lite where the server is a smart contract."
 
 ---
 
-## Архитектура
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Browser client (packages/client)                           │
 │  React + Phaser + Vite. Layers: Network → Headless →        │
-│  Local → Renderer. Подписан на onchain-таблицы через MUD    │
-│  store-sync. Сабмитит транзакции через burner-wallet.       │
+│  Local → Renderer. Subscribed to onchain tables via MUD     │
+│  store-sync. Submits transactions through a burner wallet.  │
 └─────────────────────────────────────────────────────────────┘
                        ▲                       │
                        │ events                │ tx
@@ -28,121 +28,112 @@ Sky Strife — это **онлайн-RTS на блокчейне**, написа
 │  MUD World (packages/contracts) — Solidity                  │
 │  • Tables: Combat, Position, OwnedBy, Match, Gold, …        │
 │  • Systems: MoveSystem, BuildSystem, MatchSystem, …         │
-│  • Один общий "World"-контракт с Namespace-routing.         │
+│  • One shared "World" contract with Namespace routing.      │
 └─────────────────────────────────────────────────────────────┘
                        ▲                       ▲
                        │ RPC                   │
             ┌──────────┴──────────┐    ┌───────┴───────┐
             │  Anvil (:8545)      │    │  headless     │
-            │  локальная EVM      │    │  client/      │
+            │  local EVM          │    │  client/      │
             │  (devnet 31337)     │    │  bot scripts  │
             └─────────────────────┘    └───────────────┘
                        ▲
                        │
             ┌──────────┴──────────┐
             │  Plugins WS (:1993) │
-            │  hot-reload плагинов│
+            │  hot-reload plugins │
             └─────────────────────┘
 ```
 
-### Что делает каждый пакет
+### Package breakdown
 
-| Пакет | Зачем нужен |
-| ----- | ----------- |
-| `packages/contracts` | Смарт-контракты: World, Systems, Tables, шаблоны юнитов (`ts/templates/templates.ts`), пост-деплой скрипты (`script/PostDeploy.s.sol`, `DeployTemplates`, `DeployOrbs`, `DeploySeasonPass`, `DeploySkyKey`). |
-| `packages/client` | Веб-клиент. Внутри слои: **Network** (RPC + индексация таблиц), **Headless** (игровая логика, не зависящая от рендера), **Local** (UI-стейт, выделение, hover), **Renderer/Phaser** (графика). |
-| `packages/phaserx` | Обёртка над Phaser 3 (форк из MUD). |
-| `packages/ecs-browser` | Боковая панель в клиенте для отладки ECS-стейта (что лежит в Position/Combat/Match для выбранной сущности). |
-| `packages/art` | Спрайты, тайлсеты, Tiled-карты и плагин экспорта в формат шаблонов. |
-| `packages/plugins` | WS-сервер с hot-reload пользовательских плагинов. Файлы из `packages/plugins/dev/` сразу подхватываются в **Plugin Manager** в клиенте. |
-| `packages/headless-client` | Запускает World без UI: `mapUploader.ts` заливает карты в контракт после деплоя, `createDebugMatches.ts` создаёт тестовые матчи, `example.ts` — пример игры ботом. |
-| `packages/matchmaking-server` | Опциональный, для prod — пуллит матчи. |
-| `packages/discord-bot`, `packages/analytics-worker`, `packages/metadata-worker` | Прод-инфра (Discord, аналитика, метаданные NFT Season Pass). На локальном dev не нужны. |
+| Package | Purpose |
+| ------- | ------- |
+| `packages/contracts` | Smart contracts: World, Systems, Tables, unit templates (`ts/templates/templates.ts`), post-deploy scripts (`script/PostDeploy.s.sol`, `DeployTemplates`, `DeployOrbs`, `DeploySeasonPass`, `DeploySkyKey`). |
+| `packages/client` | Web client. Layers: **Network** (RPC + table indexing), **Headless** (game logic, render-independent), **Local** (UI state, selection, hover), **Renderer/Phaser** (graphics). |
+| `packages/phaserx` | A Phaser 3 wrapper (fork from MUD). |
+| `packages/ecs-browser` | Sidebar panel in the client for debugging ECS state (what's in Position/Combat/Match for a selected entity). |
+| `packages/art` | Sprites, tilesets, Tiled maps and an export plugin for the template format. |
+| `packages/plugins` | WS server with hot-reload of user plugins. Files in `packages/plugins/dev/` are picked up immediately in the **Plugin Manager** UI. |
+| `packages/headless-client` | Runs the World without a UI: `mapUploader.ts` uploads maps to the contract after deploy, `createDebugMatches.ts` creates test matches, `example.ts` is a bot example. |
+| `packages/matchmaking-server` | Optional, for production — pulls matches. |
+| `packages/discord-bot`, `packages/analytics-worker`, `packages/metadata-worker` | Prod infra (Discord, analytics, NFT Season Pass metadata). Not needed for local dev. |
 
-### Что лежит в smart-contract таблицах (примеры из `packages/contracts/mud.config.ts`)
+### What lives in smart-contract tables (examples from `packages/contracts/mud.config.ts`)
 
-- **Combat** — `health / maxHealth / armor / strength / minRange / maxRange / archetype` юнита.
-- **Position** — координаты `(x, y)` сущности внутри матча.
-- **OwnedBy** — владелец сущности (игрок).
-- **Match** — какому матчу принадлежит сущность (`matchEntity`).
-- **Gold** / **GoldOnKill** — экономика.
-- **Capturable** — структура, которую можно «захватить», а не убить (Settlement, GoldMine, …).
-- **Factory** — какие юниты могут заказываться в Settlement и за сколько (`goldCosts: [100, 150, 200, 250, 400, 550, 700]`).
-- **Untraversable**, **Stamina**, **Charger**, **MoveDifficulty** и десятки других — оставлены как enum-таблицы.
+- **Combat** — `health / maxHealth / armor / strength / minRange / maxRange / archetype` of a unit.
+- **Position** — entity coordinates `(x, y)` inside a match.
+- **OwnedBy** — who owns an entity (player).
+- **Match** — which match an entity belongs to (`matchEntity`).
+- **Gold** / **GoldOnKill** — economy.
+- **Capturable** — structures you capture rather than destroy (Settlement, GoldMine, …).
+- **Factory** — which units a Settlement can build and at what cost (`goldCosts: [100, 150, 200, 250, 400, 550, 700]`).
+- **Untraversable**, **Stamina**, **Charger**, **MoveDifficulty** and dozens of others — used as enum/flag tables.
 
-### Юниты (`packages/contracts/ts/templates/templates.ts`)
+### Units (`packages/contracts/ts/templates/templates.ts`)
 
-Эталонные шаблоны — это TypeScript, который при деплое заливается в onchain Templates. Примеры:
+Reference templates are written in TypeScript and uploaded onchain during deploy. Examples:
 
 - **Swordsman** — `hp 120k, str 50k, range 1, counter -30` (front-line).
-- **Pikeman** — анти-кавалерия.
-- **Halberdier**, **Pillager**, **Knight**, **Dragoon**, **Brute** — разный микс HP/урон/радиус.
-- **Archer**, **Catapult**, **Marksman** — рейндж.
-- **Settlement** — стартовая база с `Factory`, `Capturable=true`, `health 250k`.
-- **GoldMine**, **GoldCache** — источники золота.
+- **Pikeman** — anti-cavalry.
+- **Halberdier**, **Pillager**, **Knight**, **Dragoon**, **Brute** — various HP/damage/range mixes.
+- **Archer**, **Catapult**, **Marksman** — ranged.
+- **Settlement** — starting base with `Factory`, `Capturable=true`, `health 250k`.
+- **GoldMine**, **GoldCache** — gold sources.
 
-Перечень типов юнитов фиксирован в enum `UnitTypes` в `mud.config.ts`.
+The full list of unit types is in the `UnitTypes` enum in `mud.config.ts`.
 
-### Системы (`packages/contracts/src/systems/`)
+### Systems (`packages/contracts/src/systems/`)
 
-Каждая «команда игрока» — отдельный System-контракт:
+Each "player command" is a separate System contract:
 
-- **MatchSystem** — создать матч, начать матч, завершить матч.
-- **LobbySystem** — присоединиться к лобби, выбрать героя.
-- **PlayerRegisterSystem** / **PlayerDeregisterSystem** — игрок входит/выходит.
-- **NameSystem** — выбрать ник.
-- **MoveSystem** — двигать юнита (учитывает `Stamina`, `MoveDifficulty`, дальность).
-- **BuildSystem** — заказать постройку юнита в Settlement (тратит золото).
-- **TemplateSpawnSystem** — спавн юнита по шаблону (внутренний хелпер).
-- **CancelMatchSystem** — отменить матч.
-- **CopyMapSystem** — копирование карты.
-- **LevelUploadSystem** / **OfficialLevelSystem** / **LevelRotationSystem** — заливка карт и ротация.
-- **AllowListSystem** — белые списки игроков на приватных матчах.
-- **WithdrawSystem** — вывод onchain-активов (для prod).
+- **MatchSystem** — create match, start match, finish match.
+- **LobbySystem** — join lobby, pick a hero.
+- **PlayerRegisterSystem** / **PlayerDeregisterSystem** — player join/leave.
+- **NameSystem** — pick a name.
+- **MoveSystem** — move a unit (respects `Stamina`, `MoveDifficulty`, range).
+- **BuildSystem** — order a unit from a Settlement (costs gold).
+- **TemplateSpawnSystem** — spawn a unit from a template (internal helper).
+- **CancelMatchSystem** — cancel a match.
+- **CopyMapSystem** — copy a map.
+- **LevelUploadSystem** / **OfficialLevelSystem** / **LevelRotationSystem** — map upload and rotation.
+- **AllowListSystem** — whitelist players for private matches.
+- **WithdrawSystem** — withdraw onchain assets (for prod).
 - **SeasonPassSystem** / **CreateSeasonPassSystem** / **SeasonPassOnlySystem** — Season Pass NFT.
-- **HeroConfigSystem** — настройка героев (стартовых юнитов матча).
+- **HeroConfigSystem** — hero configuration (starting units for a match).
 
-Сабмит транзакции в любой System — это просто `world.call(systemId, calldata)`; клиент это делает через MUD-обёртки в `packages/client/src/mud/setupNetwork.ts`.
-
----
-
-## Игровой процесс (вкратце)
-
-1. **Создаётся матч.** Админ (или игрок с правами) вызывает `MatchSystem.createMatch(...)`,
-   указывает карту, число игроков, и т.д. На карту через `LevelUpload`/`OfficialLevel`
-   уже залиты тайлы и стартовые позиции.
-2. **Игроки присоединяются.** Каждый делает `LobbySystem.joinMatch(...)` со своим
-   `matchEntity`, выбирает героя (`HeroConfigSystem`).
-3. **Матч стартует.** `MatchSystem.startMatch(...)` ставит флаг и запускает реальное
-   время. С этого момента у каждого игрока есть стартовое золото, Settlement и герой
-   с несколькими юнитами вокруг.
-4. **Ход за ходом (real-time, не пошагово):**
-   - Двигай юнита (`MoveSystem.move(...)`) — расходует Stamina.
-   - Атакуй чужого юнита (входит в `MoveSystem.fightMove` / Combat) — расчёт ущерба
-     онлайн в Solidity по `Combat`-таблице и архетипу.
-   - Захватывай **Settlement** / **GoldMine** — если структура `Capturable`, она при
-     приближении меняет владельца, а не умирает. Своя GoldMine даёт пассивный доход.
-   - Из своего Settlement заказывай новые юниты (`BuildSystem.build(...)`) —
-     спишет золото по `Factory.goldCosts`, заспавнит юнит по шаблону.
-   - Используй героя как сильную фигуру (у него уникальные стат-блоки).
-5. **Победа** — обычно «уничтожить/захватить все Settlement противника» или цели
-   карты. Условие зашито в Match-таблицы + системы матча.
-
-Подробности логики стоит смотреть прямо в `packages/contracts/src/systems/MatchSystem.sol` и `MoveSystem.sol`.
+Submitting a transaction to any System is just `world.call(systemId, calldata)`; the client does this through the MUD wrappers in `packages/client/src/mud/setupNetwork.ts`.
 
 ---
 
-## Как открыть и сыграть локально
+## Gameplay (summary)
 
-### 0. Запустить стек
+1. **A match is created.** The admin (or a player with permissions) calls `MatchSystem.createMatch(...)`, specifying a map, player count, etc. The map already has tiles and starting positions uploaded via `LevelUpload`/`OfficialLevel`.
+2. **Players join.** Each player calls `LobbySystem.joinMatch(...)` with their `matchEntity` and picks a hero (`HeroConfigSystem`).
+3. **The match starts.** `MatchSystem.startMatch(...)` sets a flag and starts real-time play. From this point each player has starting gold, a Settlement and a hero with several units around it.
+4. **Real-time turns (not turn-based):**
+   - Move a unit (`MoveSystem.move(...)`) — costs Stamina.
+   - Attack an enemy unit (via `MoveSystem.fightMove` / Combat) — damage is calculated onchain in Solidity using the `Combat` table and archetype.
+   - Capture a **Settlement** / **GoldMine** — if the structure is `Capturable`, it changes owner on approach instead of being destroyed. Owning a GoldMine gives passive income.
+   - From your Settlement, order new units (`BuildSystem.build(...)`) — spends gold per `Factory.goldCosts`, spawns a unit from a template.
+   - Use your hero as a powerful piece (unique stat block).
+5. **Victory** — typically "destroy/capture all of the opponent's Settlements" or map-specific objectives. Win conditions are encoded in Match tables + match systems.
 
-См. `INSTALL.md`. После `pnpm dev` должны быть подняты:
+For details, look directly at `packages/contracts/src/systems/MatchSystem.sol` and `MoveSystem.sol`.
 
-- `http://localhost:1337` — клиент,
+---
+
+## Playing locally
+
+### 0. Start the stack
+
+See `INSTALL.md`. After `pnpm dev` you should have:
+
+- `http://localhost:1337` — client,
 - `:1993` — plugins WS,
 - `:8545` — anvil RPC.
 
-Проверка:
+Quick health check:
 
 ```bash
 curl -s -o /dev/null -w "client  : %{http_code}\n" http://localhost:1337/
@@ -152,100 +143,100 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://localhost:8545
 ```
 
-### 1. Соло-игра (быстрый smoke-test)
+### 1. Solo play (quick smoke test)
 
 ```
 http://localhost:1337
 ```
 
-Стандартный dev-сетап через `dev:create-debug-matches` уже создаёт тестовый
-матч на отладочной карте. Победителя без второго игрока не будет, но можно
-двигать юнитов, атаковать нейтралов, захватывать GoldMine, тренировать
-юнитов в Settlement.
+The standard dev setup via `dev:create-debug-matches` already creates a test
+match on a debug map. You won't get a winner without a second player, but you
+can move units, attack neutrals, capture GoldMines, and train units in your
+Settlement.
 
-1. Нажми **PLAY**.
-2. **SKIP** (пропустить выбор Season Pass).
-3. Кликни на свой Settlement или героя, чтобы открыть панель действий.
-4. Клик по юниту → видны зелёные клетки (куда можно идти) и красные (кого атаковать).
-5. Клик по клетке — отправляется транзакция, анвил её мгновенно подтверждает,
-   клиент обновляет состояние.
+1. Click **PLAY**.
+2. **SKIP** (skip Season Pass selection).
+3. Click on your Settlement or hero to open the actions panel.
+4. Click a unit → green cells (walkable) and red cells (attackable) appear.
+5. Click a cell → a transaction is sent, anvil confirms it instantly,
+   the client updates the state.
 
-### 2. Игра вдвоём (vs самого себя)
+### 2. 2-player game (vs yourself)
 
-В первом окне браузера (админ):
+In the first browser window (admin):
 
-1. Открой `http://localhost:1337`.
+1. Open `http://localhost:1337`.
 2. **PLAY → SKIP → + CREATE MATCH**.
-3. Имя матча, карта на 2 игрока, **CREATE AND JOIN MATCH**.
-4. Выбери героя, **CREATE AND JOIN MATCH**, потом **PLAY**.
+3. Enter a name, pick a 2-player map, **CREATE AND JOIN MATCH**.
+4. Pick a hero, **CREATE AND JOIN MATCH**, then **PLAY**.
 
-Во втором окне (обычный игрок) — открой в **инкогнито** или другом профиле
-браузера:
+In the second window (regular player) — open in **Incognito** or a different
+browser profile:
 
 1. `http://localhost:1337/?asPlayer`
 2. **PLAY → SKIP**.
-3. В списке матчей нажми **OPEN** на твоём матче и присоединись.
+3. In the match list click **OPEN** on your match and join.
 
-Когда оба игрока на месте — нажми **START** у админа.
+When both players are in — click **START** as the admin.
 
-### 3. Управление в бою
+### 3. In-game controls
 
-| Действие | Как |
+| Action | How |
 | --- | --- |
-| Выбрать юнита | Левый клик по нему |
-| Двигаться | Клик по зелёной клетке (тратит Stamina) |
-| Атаковать | Клик по подсвеченному врагу |
-| Захватить | Дойти до Settlement / GoldMine и попасть в радиус |
-| Заказать юнита | Кликни Settlement → выбери юнит из меню (списывается золото) |
-| Снять выделение | ESC или клик по пустой клетке |
-| Открыть Plugin Manager | Кнопка в правом верхнем углу |
-| Открыть ECS Browser (debug) | Боковая панель (пакет `packages/ecs-browser`) |
+| Select a unit | Left-click on it |
+| Move | Click a green cell (costs Stamina) |
+| Attack | Click a highlighted enemy |
+| Capture | Walk your unit to a Settlement / GoldMine within range |
+| Build a unit | Click your Settlement → pick a unit from the menu (costs gold) |
+| Deselect | ESC or click an empty cell |
+| Open Plugin Manager | Button in the top-right corner |
+| Open ECS Browser (debug) | Sidebar panel (package `packages/ecs-browser`) |
 
-### 4. Что точно работает на локалке
+### 4. What works locally
 
-- Создание матчей и присоединение.
-- Все типы юнитов из templates.ts.
-- Захват Settlement и GoldMine.
-- Заказ юнитов через Factory.
-- Плагины из `packages/plugins/dev/` (через Plugin Manager в правом верхнем углу клиента).
-- Headless-сценарии (`pnpm --filter headless-client run example`).
+- Creating matches and joining them.
+- All unit types from templates.ts.
+- Capturing Settlements and GoldMines.
+- Building units via Factory.
+- Plugins from `packages/plugins/dev/` (via Plugin Manager in the top-right corner).
+- Headless scenarios (`pnpm --filter headless-client run example`).
 
-### 5. Что не работает на локалке (и почему это нормально)
+### 5. What does NOT work locally (and why that's fine)
 
-- **Season Pass** как NFT — задеплоен, но прод-маркетплейс отсутствует.
-- **Matchmaking server** — нужен только для прод-инстансов.
-- **Analytics / Discord / metadata worker** — все читают индексеры redstone/garnet,
-  а не локальный anvil.
+- **Season Pass** as an NFT — deployed, but the prod marketplace is absent.
+- **Matchmaking server** — only needed for prod instances.
+- **Analytics / Discord / metadata worker** — all read from redstone/garnet indexers,
+  not the local anvil.
 
 ---
 
-## Полезные команды для исследования
+## Useful exploration commands
 
 ```bash
-# Какие таблицы и системы реально задеплоены в World:
+# Which tables and systems are actually deployed to the World:
 curl -s -X POST -H 'Content-Type: application/json' \
   --data '{"jsonrpc":"2.0","method":"eth_getCode","params":["0xd3368e2ab87d53f4cde3c7d3a9306f284f2c5d90","latest"],"id":1}' \
   http://localhost:8545 | jq -r .result | head -c 200
 
-# Конфиг таблиц/энумов:
+# Table / enum config:
 cat packages/contracts/mud.config.ts
 
-# Список систем:
+# List systems:
 ls packages/contracts/src/systems/
 
-# Шаблоны юнитов и их статы:
+# Unit templates and their stats:
 cat packages/contracts/ts/templates/templates.ts
 
-# Карты, доступные на dev:
-ls packages/contracts/data/levels/  2>/dev/null || ls packages/contracts/levels/ 2>/dev/null
+# Maps available in dev:
+ls packages/contracts/data/levels/ 2>/dev/null || ls packages/contracts/levels/ 2>/dev/null
 ```
 
-## Куда копать дальше
+## Where to dig deeper
 
-- **Логика матча** — `packages/contracts/src/systems/MatchSystem.sol`,
+- **Match logic** — `packages/contracts/src/systems/MatchSystem.sol`,
   `MoveSystem.sol`, `BuildSystem.sol`.
-- **Клиентский ECS-цикл** — `packages/client/src/layers/Headless/` и
-  `packages/client/src/layers/Local/` (что-то меняется в стейте → реакция в Phaser).
-- **Рендер** — `packages/client/src/layers/Renderer/Phaser/`.
-- **Плагины** — `packages/plugins/dev/` + `packages/plugins/tutorials/`.
-- **headless-бот** — `packages/headless-client/scripts/example.ts` (пример «как написать AI на тайпскрипте, который двигает юнитами»).
+- **Client ECS cycle** — `packages/client/src/layers/Headless/` and
+  `packages/client/src/layers/Local/` (state change → Phaser reaction).
+- **Rendering** — `packages/client/src/layers/Renderer/Phaser/`.
+- **Plugins** — `packages/plugins/dev/` + `packages/plugins/tutorials/`.
+- **Headless bot** — `packages/headless-client/scripts/example.ts` (example of "how to write a TypeScript AI that moves units").

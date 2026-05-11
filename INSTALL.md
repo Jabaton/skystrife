@@ -1,24 +1,25 @@
-# Sky Strife — пошаговая установка и запуск (Ubuntu / WSL Ubuntu)
+# Sky Strife — step-by-step install & run (Ubuntu / WSL Ubuntu)
 
-Это инструкция, по которой проект **гарантированно стартует без ошибок** на чистой
-Ubuntu 22.04 / WSL Ubuntu. Здесь учтены все подводные камни, на которых падает
-сборка по «обычной» инструкции из README.
+This is the install guide that the project is **guaranteed to start from on
+a clean Ubuntu 22.04 / WSL Ubuntu**. It covers every gotcha that breaks the
+"standard" README build.
 
-> **Важно:** версии тут не «рекомендуемые», а **обязательные**. Если поставить
-> другие — что-то сломается (см. раздел «Почему именно эти версии» в конце).
+> **Important:** versions here are not "recommended", they are **required**.
+> Pick something else and something will break (see "Why these exact versions"
+> at the end).
 
 ---
 
-## 1. Системные пакеты
+## 1. System packages
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y curl git build-essential pkg-config libssl-dev
 ```
 
-## 2. Node.js 18.16.1 (строго эта версия)
+## 2. Node.js 18.16.1 (strictly this version)
 
-Через `nvm`:
+Via `nvm`:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -29,23 +30,23 @@ nvm install 18.16.1
 nvm alias default 18.16.1
 nvm use 18.16.1
 
-node -v   # должно быть v18.16.1
+node -v   # must be v18.16.1
 ```
 
-> Не ставьте Node из `apt` и не ставьте Node 20 — `tsx@3.13`, которым пользуется
-> skystrife, ломается на новом Node 18.20+ и на Node 20.
+> Do not install Node from `apt`, and do not install Node 20: `tsx@3.13`
+> (which Sky Strife uses) breaks on Node 18.20+ and on Node 20.
 
-## 3. pnpm 8 (для skystrife)
+## 3. pnpm 8 (for Sky Strife)
 
 ```bash
 npm install -g pnpm@8
 pnpm -v   # 8.x.x
 ```
 
-> pnpm 9 не подойдёт: у skystrife `pnpm-lock.yaml` с `lockfileVersion: '6.0'`,
-> который пишет именно pnpm 8.
+> pnpm 9 will not work: Sky Strife's `pnpm-lock.yaml` is `lockfileVersion: '6.0'`,
+> which only pnpm 8 writes.
 
-## 4. Rust (нужен для Foundry)
+## 4. Rust (needed by Foundry)
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -53,7 +54,7 @@ source "$HOME/.cargo/env"
 rustc --version
 ```
 
-## 5. Foundry **версии 1.0.0** (строго)
+## 5. Foundry **version 1.0.0** (strictly)
 
 ```bash
 curl -L https://foundry.paradigm.xyz | bash
@@ -63,14 +64,14 @@ forge --version  # forge Version: 1.0.0-v1.0.0
 anvil --version  # anvil Version: 1.0.0-v1.0.0
 ```
 
-> **Не ставьте свежий Foundry (1.7.x).** В 1.7 включена проверка
-> `Usage of address(this) detected in script contract`, из-за которой
-> `PostDeploy` падает (skystrife использует `address(this)` в `CreateSeasonPassSystem`).
+> **Do not install the latest Foundry (1.7.x).** 1.7 enables the
+> `Usage of address(this) detected in script contract` check, which makes
+> `PostDeploy` fail (Sky Strife uses `address(this)` in `CreateSeasonPassSystem`).
 
-## 6. Клонируем skystrife и MUD
+## 6. Clone Sky Strife and MUD
 
-MUD кладём **рядом** с skystrife (не внутрь `packages/`!), потому что в
-`packages/*/package.json` пути `link:../../../mud/packages/*`:
+MUD goes **next to** Sky Strife (not inside `packages/`!), because the
+`packages/*/package.json` files link via `link:../../../mud/packages/*`:
 
 ```bash
 cd ~
@@ -78,43 +79,43 @@ git clone https://github.com/Jabaton/skystrife.git
 git clone https://github.com/latticexyz/mud.git
 ```
 
-## 7. Чекаут нужного коммита MUD
+## 7. Check out the right MUD commit
 
 ```bash
 cd ~/mud
 git checkout e85dc5349
 ```
 
-> На любом коммите **до** `e85dc5349` (17 июля 2024, «feat(store,...): add table labels…»)
-> код skystrife падает с `Overrides of \`name\` and \`namespace\` are not allowed
-> for tables in a store config` — этот коммит первым включает поддержку
-> `defineTable({ namespace, label, … })`, которой пользуется skystrife.
+> On any commit **before** `e85dc5349` (July 17 2024, "feat(store,...): add table labels…"),
+> Sky Strife code fails with `Overrides of \`name\` and \`namespace\` are not allowed
+> for tables in a store config` — this commit is the first one that adds support for
+> `defineTable({ namespace, label, … })`, which Sky Strife uses.
 
-## 8. Сборка MUD (нужен pnpm 9 временно)
+## 8. Build MUD (needs pnpm 9 temporarily)
 
-MUD на этом коммите требует pnpm 9. Поэтому ставим его, собираем MUD, потом
-**возвращаемся** на pnpm 8 для skystrife:
+MUD at this commit requires pnpm 9. Install it, build MUD, then **switch back**
+to pnpm 8 for Sky Strife:
 
 ```bash
 npm install -g pnpm@9
 cd ~/mud
 pnpm install
-NODE_OPTIONS="--max-old-space-size=8192" pnpm build   # OOM без флага
+NODE_OPTIONS="--max-old-space-size=8192" pnpm build   # OOM without the flag
 ```
 
-> `--max-old-space-size=8192` обязателен: на дефолтных 2ГБ воркер `store-sync`
-> падает с `ERR_WORKER_OUT_OF_MEMORY`.
+> `--max-old-space-size=8192` is required: on the default 2 GB the
+> `store-sync` worker dies with `ERR_WORKER_OUT_OF_MEMORY`.
 
-Возвращаем pnpm 8 для skystrife:
+Switch pnpm 8 back for Sky Strife:
 
 ```bash
 npm install -g pnpm@8
 ```
 
-## 9. Патч MUD CLI (исправляем баг `--aws`)
+## 9. Patch the MUD CLI (fix the `--aws` bug)
 
-В минифицированном CLI MUD есть баг: при не-KMS деплое в `argv` для
-`forge script` попадает пустая строка `""`, и форж ругается
+The minified MUD CLI has a bug: on a non-KMS deploy it puts an empty string `""`
+into the `argv` array for `forge script`, and forge complains with
 `encode length mismatch: expected 1 types, got 2`.
 
 ```bash
@@ -122,20 +123,20 @@ sed -i 's|"-vvv",s?"--aws":""|"-vvv",...(s?["--aws"]:[])|' \
   ~/mud/packages/cli/dist/commands-*.js
 ```
 
-Проверка:
+Verify:
 
 ```bash
 grep -l '"-vvv",\.\.\.(s?\["--aws"\]:\[\])' ~/mud/packages/cli/dist/commands-*.js
 ```
 
-Должен найтись ровно один файл (`commands-XXXXXXX.js`).
+Exactly one file (`commands-XXXXXXX.js`) should match.
 
-## 10. Фикс `fs.watch` в плагинах
+## 10. `fs.watch` fix for plugins
 
-На Linux + Node 18 опция `recursive: true` для `fs.watch` не поддерживается —
-плагин-сервер падает с `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM`. В файле
-`~/skystrife/packages/plugins/index.mjs` блок `fs.watch(...)` нужно завернуть
-в try/catch с фолбэком на обычный watch:
+On Linux + Node 18 the `recursive: true` option for `fs.watch` is not supported —
+the plugin server dies with `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM`. In
+`~/skystrife/packages/plugins/index.mjs` wrap the `fs.watch(...)` call in a
+try/catch with a fallback to non-recursive watch:
 
 ```js
 function startWatcher(options) {
@@ -166,120 +167,120 @@ try {
 }
 ```
 
-(В этом репозитории файл уже исправлен.)
+(In this repo the file is already fixed.)
 
-## 11. Анвилу — auto-mine
+## 11. Anvil auto-mine
 
-В `~/skystrife/packages/contracts/package.json` нужно убрать `--block-time 2`
-у скрипта `devnode`:
+In `~/skystrife/packages/contracts/package.json` you must remove `--block-time 2`
+from the `devnode` script:
 
 ```json
 "devnode": "anvil --base-fee 0",
 ```
 
-> С `--block-time 2` `mud deploy` ловит гонку nonce: отправляет ~150 транзакций
-> быстрее, чем анвил их майнит, и часть теряется. На auto-mine каждая транзакция
-> подтверждается синхронно — деплой проходит за ~15 секунд.
+> With `--block-time 2`, `mud deploy` hits a nonce race: it sends ~150 transactions
+> faster than anvil mines them, and some get dropped. With auto-mine each transaction
+> is confirmed synchronously, deploy completes in ~15 seconds.
 
-(В этом репозитории это уже сделано.)
+(In this repo this is already done.)
 
-## 12. Установка зависимостей skystrife
+## 12. Install Sky Strife dependencies
 
 ```bash
 cd ~/skystrife
 pnpm install
 ```
 
-> Первый раз это долго (5–10 минут) — нормально.
+> First time this is slow (5-10 minutes) — that's normal.
 
-## 12a. Auth-server для Discord и Solana
+## 12a. Auth-server for Discord and Solana
 
-С PR #2 в проект добавлен новый пакет `packages/auth-server` — он держит
-Discord OAuth, JWT-сессии и Solana stake-эскроу. Без него клиент покажет
-LoginScreen, но логин не сработает.
+PR #2 adds a new package `packages/auth-server` that hosts Discord OAuth,
+JWT sessions and the Solana stake escrow. Without it the client renders
+the LoginScreen but login will not work.
 
-1. Скопируй пример конфига:
+1. Copy the example config:
 
    ```bash
    cp packages/auth-server/.env.example packages/auth-server/.env
    ```
 
-2. Заполни в `.env` свои значения:
+2. Fill in your values in `.env`:
 
-   - `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` — из Discord Developer Portal
-   - `DISCORD_BOT_TOKEN` — токен бота того же приложения
-   - `DISCORD_GUILD_ID` — id Discord-сервера
-   - `DISCORD_CHANNEL_ID` — id канала, куда бот зовёт игроков
-   - `DISCORD_ADMIN_USER_ID` — твой Discord user id (только он сможет создавать матчи)
-   - `JWT_SECRET` — длинная случайная строка (`openssl rand -base64 64`)
-   - `SOLANA_ESCROW_PRIVATE_KEY` — base58-приватник кастодиального кошелька
-     (можно сгенерировать `solana-keygen new -o /tmp/escrow.json --no-bip39-passphrase`
-     и взять секретный ключ через `solana-keygen pubkey -o /tmp/escrow.json`)
-   - `SOLANA_ESCROW_PUBKEY` — соответствующий публичный адрес
-   - `SOLANA_CLUSTER` — `devnet` (рекомендуется для разработки)
+   - `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` — from the Discord Developer Portal
+   - `DISCORD_BOT_TOKEN` — the bot token of the same application
+   - `DISCORD_GUILD_ID` — your Discord server id
+   - `DISCORD_CHANNEL_ID` — the channel the bot will invite players to
+   - `DISCORD_ADMIN_USER_ID` — your Discord user id (only this id can create matches)
+   - `JWT_SECRET` — a long random string (`openssl rand -base64 64`)
+   - `SOLANA_ESCROW_PRIVATE_KEY` — base58 private key of the custodial escrow wallet
+     (e.g. generate one with `solana-keygen new -o /tmp/escrow.json --no-bip39-passphrase`
+     and read the base58 secret from the JSON)
+   - `SOLANA_ESCROW_PUBKEY` — the matching public address
+   - `SOLANA_CLUSTER` — `devnet` (recommended for development)
 
-3. В Discord Developer Portal → OAuth2 → Redirects добавь:
+3. In the Discord Developer Portal → OAuth2 → Redirects add:
 
    ```
    http://localhost:1337/api/auth/discord/callback
    ```
 
-4. Бот должен быть приглашён на тот сервер, чей id ты указал в
-   `DISCORD_GUILD_ID`, со scope-ами `bot` и `applications.commands` —
-   тогда он сможет дозванивать игроков через `guilds.join`.
+4. The bot must be a member of the guild whose id you set in
+   `DISCORD_GUILD_ID`, with scopes `bot` and `applications.commands` — so it
+   can call `guilds.join` for new players.
 
-> Без `.env` для auth-сервера `start.sh --background` всё равно поднимет
-> client/anvil/plugins, просто пропишет варнинг и LoginScreen не сможет
-> ничего отправить. В обычном `pnpm dev` (mprocs) auth-сервер пока не
-> запускается — пользуйся `./start.sh --background` или подними отдельно:
+> Without `.env` for the auth-server, `start.sh --background` still starts
+> client/anvil/plugins but prints a warning and the LoginScreen can't talk
+> to anyone. In plain `pnpm dev` (mprocs) the auth-server is not launched
+> yet — use `./start.sh --background` or start it separately:
 >
 > ```bash
 > pnpm --filter auth-server run start
 > ```
 
-## 13. Запуск
+## 13. Run
 
-В одном терминале — локальная сеть и контракты + загрузка карт:
-
-```bash
-cd ~/skystrife
-pnpm run dev:node            # терминал 1: анвил на :8545
-```
-
-В другом терминале — деплой и наполнение:
+In one terminal — local network, contracts and map uploads:
 
 ```bash
 cd ~/skystrife
-pnpm run dev:contracts       # деплой World + PostDeploy + Templates/Orbs/SeasonPass/SkyKey
-pnpm run dev:upload-map      # загружает карты GM Island / Two Player / Vortex
-pnpm run dev:create-debug-matches   # (опционально) создаёт тестовые матчи
+pnpm run dev:node            # terminal 1: anvil on :8545
 ```
 
-И ещё два терминала — клиент и плагин-сервер:
+In another terminal — deploy + seeding:
+
+```bash
+cd ~/skystrife
+pnpm run dev:contracts       # deploy World + PostDeploy + Templates/Orbs/SeasonPass/SkyKey
+pnpm run dev:upload-map      # uploads maps GM Island / Two Player / Vortex
+pnpm run dev:create-debug-matches   # (optional) creates test matches
+```
+
+And two more terminals — client and plugin server:
 
 ```bash
 pnpm run dev:client          # http://localhost:1337
 pnpm run dev:plugins         # ws://localhost:1993
 ```
 
-Либо одной командой через `mprocs` (как в стандартном `pnpm dev`):
+Or all-in-one via `mprocs` (the regular `pnpm dev`):
 
 ```bash
 pnpm dev
 ```
 
-Либо через `./start.sh --background`, который поднимет ещё и
-**auth-server** (Discord+Solana) — если `packages/auth-server/.env`
-заполнен:
+Or via `./start.sh --background`, which also brings up the
+**auth-server** (Discord+Solana) — if `packages/auth-server/.env`
+is filled in:
 
 ```bash
-./start.sh --background     # вместе с auth на :3002
-./start.sh --stop           # остановить всё
+./start.sh --background     # also brings up auth on :3002
+./start.sh --stop           # stop everything
 ```
 
-Открыть в браузере: <http://localhost:1337>.
+Open in the browser: <http://localhost:1337>.
 
-## 14. Проверка, что всё живо
+## 14. Smoke test
 
 ```bash
 curl -s -o /dev/null -w "client  : %{http_code}\n" http://localhost:1337/
@@ -289,29 +290,26 @@ curl -s -X POST -H 'Content-Type: application/json' \
   http://localhost:8545
 ```
 
-Должно быть `200`, `200`, и JSON с номером блока.
+Expected: `200`, `200`, and a JSON body with a block number.
 
 ---
 
-## Почему именно эти версии
+## Why these exact versions
 
-| Компонент      | Версия               | Причина                                                                                                  |
-| -------------- | -------------------- | -------------------------------------------------------------------------------------------------------- |
-| Node           | **18.16.1**          | `tsx@3.13` ломается на 18.20+ (`tx must be loaded with --import instead of --loader`).                   |
-| pnpm (skystrife)| **8**               | `pnpm-lock.yaml` skystrife — `lockfileVersion: 6.0`, его пишет только pnpm 8.                            |
-| pnpm (mud)     | **9**                | Любой коммит mud после мая 2024 требует pnpm 9 в `engines`.                                              |
-| Foundry        | **1.0.0**            | На 1.7+ форж блокирует `address(this)` в скриптах → PostDeploy падает.                                   |
-| MUD коммит     | **e85dc5349**        | До этого коммита `defineTable({ namespace, … })` запрещён валидацией. После — ок.                        |
+| Component       | Version       | Reason                                                                                                  |
+| --------------- | ------------- | ------------------------------------------------------------------------------------------------------- |
+| Node            | **18.16.1**   | `tsx@3.13` breaks on 18.20+ (`tx must be loaded with --import instead of --loader`).                    |
+| pnpm (skystrife)| **8**         | Sky Strife's `pnpm-lock.yaml` is `lockfileVersion: 6.0`, which only pnpm 8 produces.                    |
+| pnpm (mud)      | **9**         | Any post-May-2024 MUD commit requires pnpm 9 in its `engines`.                                          |
+| Foundry         | **1.0.0**     | On 1.7+ forge blocks `address(this)` in scripts -> PostDeploy fails.                                    |
+| MUD commit      | **e85dc5349** | Earlier commits forbid `defineTable({ namespace, … })` via validation; this one is the first to allow it.|
 
-## Что пошло не так в исходной install.docx
+## What went wrong in the original install.docx
 
-1. Сказано клонировать MUD внутрь `packages/` — а пути в `package.json`
-   у skystrife: `link:../../../mud/packages/*`, значит MUD должен быть
-   **сиблингом** skystrife, не внутри `packages/`.
-2. Не сказано, какой коммит MUD брать. С последним `main` mud (v2.2.x)
-   skystrife собирается, но требует Node 20 + pnpm 9 для самого mud, а у
-   skystrife свой Node 18 + pnpm 8. На коммитах mud старше июля 2024
-   skystrife не валидируется (см. таблицу).
-3. Не сказано про версию Foundry — на свежем 1.7 проект просто не деплоится.
-4. Не упомянуты баги в плагин-сервере (`fs.watch recursive`) и в MUD CLI
-   (`--aws ""`).
+1. It said to clone MUD inside `packages/` — but the paths in Sky Strife's
+   `package.json` are `link:../../../mud/packages/*`, so MUD has to be a
+   **sibling** of Sky Strife, not inside `packages/`.
+2. It didn't say which MUD commit to use. With the latest mud `main` (v2.2.x),
+   Sky Strife builds but requires Node 20 + pnpm 9 for mud itself, while
+   Sky Strife wants Node 18 + pnpm 8. On mud commits older than July 2024
+   Sky Strife fails validation (see the table above).

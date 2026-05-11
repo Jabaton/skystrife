@@ -254,6 +254,9 @@ importers:
       '@rainbow-me/rainbowkit':
         specifier: 2.0.2
         version: 2.0.2(@types/react@18.3.28)(react-dom@18.3.1)(react@18.3.1)(viem@2.9.20)(wagmi@2.5.12)
+      '@solana/web3.js':
+        specifier: 1.95.4
+        version: 1.95.4
       '@solidstate/contracts':
         specifier: ^0.0.52
         version: 0.0.52

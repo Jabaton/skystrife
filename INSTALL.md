@@ -192,6 +192,51 @@ pnpm install
 
 > Первый раз это долго (5–10 минут) — нормально.
 
+## 12a. Auth-server для Discord и Solana
+
+С PR #2 в проект добавлен новый пакет `packages/auth-server` — он держит
+Discord OAuth, JWT-сессии и Solana stake-эскроу. Без него клиент покажет
+LoginScreen, но логин не сработает.
+
+1. Скопируй пример конфига:
+
+   ```bash
+   cp packages/auth-server/.env.example packages/auth-server/.env
+   ```
+
+2. Заполни в `.env` свои значения:
+
+   - `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` — из Discord Developer Portal
+   - `DISCORD_BOT_TOKEN` — токен бота того же приложения
+   - `DISCORD_GUILD_ID` — id Discord-сервера
+   - `DISCORD_CHANNEL_ID` — id канала, куда бот зовёт игроков
+   - `DISCORD_ADMIN_USER_ID` — твой Discord user id (только он сможет создавать матчи)
+   - `JWT_SECRET` — длинная случайная строка (`openssl rand -base64 64`)
+   - `SOLANA_ESCROW_PRIVATE_KEY` — base58-приватник кастодиального кошелька
+     (можно сгенерировать `solana-keygen new -o /tmp/escrow.json --no-bip39-passphrase`
+     и взять секретный ключ через `solana-keygen pubkey -o /tmp/escrow.json`)
+   - `SOLANA_ESCROW_PUBKEY` — соответствующий публичный адрес
+   - `SOLANA_CLUSTER` — `devnet` (рекомендуется для разработки)
+
+3. В Discord Developer Portal → OAuth2 → Redirects добавь:
+
+   ```
+   http://localhost:1337/api/auth/discord/callback
+   ```
+
+4. Бот должен быть приглашён на тот сервер, чей id ты указал в
+   `DISCORD_GUILD_ID`, со scope-ами `bot` и `applications.commands` —
+   тогда он сможет дозванивать игроков через `guilds.join`.
+
+> Без `.env` для auth-сервера `start.sh --background` всё равно поднимет
+> client/anvil/plugins, просто пропишет варнинг и LoginScreen не сможет
+> ничего отправить. В обычном `pnpm dev` (mprocs) auth-сервер пока не
+> запускается — пользуйся `./start.sh --background` или подними отдельно:
+>
+> ```bash
+> pnpm --filter auth-server run start
+> ```
+
 ## 13. Запуск
 
 В одном терминале — локальная сеть и контракты + загрузка карт:
@@ -221,6 +266,15 @@ pnpm run dev:plugins         # ws://localhost:1993
 
 ```bash
 pnpm dev
+```
+
+Либо через `./start.sh --background`, который поднимет ещё и
+**auth-server** (Discord+Solana) — если `packages/auth-server/.env`
+заполнен:
+
+```bash
+./start.sh --background     # вместе с auth на :3002
+./start.sh --stop           # остановить всё
 ```
 
 Открыть в браузере: <http://localhost:1337>.

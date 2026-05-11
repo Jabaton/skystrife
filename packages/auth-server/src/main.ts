@@ -19,6 +19,7 @@ import {
 } from "./db.js";
 import { sign, verify, type SessionPayload } from "./jwt.js";
 import { buildSiwsMessage, verifyWalletProof } from "./phantom.js";
+import { stakeRouter } from "./stake.js";
 
 const app = express();
 
@@ -190,6 +191,8 @@ app.get("/api/auth/config", (_req, res) => {
     discordChannelId: env.DISCORD_CHANNEL_ID,
   });
 });
+
+app.use("/api/stake", stakeRouter);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error("[auth] unhandled:", err);

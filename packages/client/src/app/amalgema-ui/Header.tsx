@@ -1,8 +1,5 @@
 import { twMerge } from "tailwind-merge";
-import { Caption, Link, OverlineLarge } from "../ui/Theme/SkyStrife/Typography";
-import { MUD_URL } from "../links";
-import { NetworkStatus } from "./NetworkStatus";
-import { AnnouncementModal } from "./AnnouncementModal";
+import { OverlineLarge } from "../ui/Theme/SkyStrife/Typography";
 
 export function Header() {
   return (
@@ -16,15 +13,7 @@ export function Header() {
           <OverlineLarge className="normal-case h-[32px]" style={{ fontSize: "32px" }}>
             Sky Strife
           </OverlineLarge>
-
-          <Caption className="ml-4">
-            powered by <Link href={MUD_URL}>MUD</Link>
-          </Caption>
         </div>
-
-        <AnnouncementModal />
-
-        <NetworkStatus />
       </div>
     </div>
   );

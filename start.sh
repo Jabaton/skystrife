@@ -212,7 +212,7 @@ in_use() {
   local p="$1"
   ss -ltn 2>/dev/null | awk '{print $4}' | grep -E ":(${p})$" -q
 }
-PORTS=(8545 1337 1993)
+PORTS=(8545 1337 1993 3002)
 busy=()
 for p in "${PORTS[@]}"; do
   if in_use "$p"; then busy+=("$p"); fi
@@ -230,7 +230,7 @@ if [ "${#busy[@]}" -gt 0 ]; then
     exit 1
   fi
 fi
-ok "Порты 8545 / 1337 / 1993 свободны"
+ok "Порты 8545 / 1337 / 1993 / 3002 свободны"
 
 if [ "$CHECK_ONLY" -eq 1 ]; then
   ok "Все проверки прошли. Запусти без --check, чтобы стартовать."
@@ -281,6 +281,19 @@ if [ "$BACKGROUND" -eq 1 ]; then
   start_bg client        pnpm run dev:client
   start_bg plugins       pnpm run dev:plugins
 
+  # auth-server держит Discord OAuth, JWT сессии и Solana stake-эскроу.
+  # Запускается только если есть .env и установлены node_modules.
+  if [ -f "$SKYSTRIFE_DIR/packages/auth-server/.env" ]; then
+    if [ ! -d "$SKYSTRIFE_DIR/packages/auth-server/node_modules" ]; then
+      info "auth-server: pnpm install…"
+      (cd "$SKYSTRIFE_DIR/packages/auth-server" && pnpm install) >"$LOG_DIR/auth-install.log" 2>&1
+    fi
+    start_bg auth pnpm --filter auth-server run start
+  else
+    warn "packages/auth-server/.env не найден — Discord+Solana auth-сервер не запускаю."
+    warn "Скопируй packages/auth-server/.env.example в .env и заполни, потом перезапусти."
+  fi
+
   info "Жду пока встанут client (1337) и plugins (1993)…"
   for _ in $(seq 1 60); do
     if in_use 1337 && in_use 1993; then break; fi
@@ -289,10 +302,19 @@ if [ "$BACKGROUND" -eq 1 ]; then
   in_use 1337 || die "client не встал. См. $LOG_DIR/client.log"
   in_use 1993 || die "plugins не встал. См. $LOG_DIR/plugins.log"
 
+  if [ -f "$SKYSTRIFE_DIR/packages/auth-server/.env" ]; then
+    for _ in $(seq 1 30); do
+      if in_use 3002; then break; fi
+      sleep 1
+    done
+    in_use 3002 && ok "auth-server: http://localhost:3002" || warn "auth-server не встал, см. $LOG_DIR/auth.log"
+  fi
+
   ok "Всё работает:"
   ok "  client:  http://localhost:1337"
   ok "  plugins: http://localhost:1993"
   ok "  RPC:     http://localhost:8545"
+  ok "  auth:    http://localhost:3002 (Discord+Solana)"
   echo
   info "Чтобы остановить всё: ./start.sh --stop"
   exit 0

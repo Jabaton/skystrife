@@ -163,11 +163,7 @@ export function LoginScreen() {
           </div>
         )}
 
-        <div className="h-6" />
-        <div className="text-xs text-neutral-500 text-center">
-          By signing in you agree to the <a href="/terms.pdf" className="underline">Terms of Service</a>{" "}
-          and <a href="/privacy-policy" className="underline">Privacy Policy</a>.
-        </div>
+
       </div>
     </div>
   );

@@ -18,8 +18,13 @@ export async function fetchMe(): Promise<AuthUser | null> {
 
 export async function startDiscordLogin(redirectTo?: string): Promise<string> {
   const qs = redirectTo ? `?redirect=${encodeURIComponent(redirectTo)}` : "";
-  const r = await fetch(`/api/auth/discord/start${qs}`, { credentials: "include" });
-  if (!r.ok) throw new Error(`discord/start ${r.status}`);
+  let r: Response;
+  try {
+    r = await fetch(`/api/auth/discord/start${qs}`, { credentials: "include" });
+  } catch {
+    throw new Error("Auth server unreachable. Make sure auth-server is running on :3002.");
+  }
+  if (!r.ok) throw new Error(`Failed to start Discord login (${r.status}). Is auth-server running?`);
   const { url } = (await r.json()) as { url: string };
   return url;
 }

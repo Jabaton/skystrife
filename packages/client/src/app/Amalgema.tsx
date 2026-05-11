@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useStore } from "../useStore";
 import { LoadingScreen } from "./amalgema-ui/LoadingScreen";
 import { AmalgemaUIRoot } from "./amalgema-ui/AmalgemaUIRoot";
+import { AuthGate } from "../auth/AuthGate";
 
 export const Amalgema = () => {
   const LOCK_CLIENT = false;
@@ -17,7 +18,11 @@ export const Amalgema = () => {
     return <LockScreen />;
   }
 
-  return <AmalgemaMenu />;
+  return (
+    <AuthGate>
+      <AmalgemaMenu />
+    </AuthGate>
+  );
 };
 
 const AmalgemaMenu = () => {

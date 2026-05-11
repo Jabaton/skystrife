@@ -2,17 +2,20 @@ import { useStore } from "../useStore";
 import { HeadlessLayer } from "./HeadlessLayer";
 import { UIRoot } from "./ui/UIRoot";
 import { LoadingScreen } from "./amalgema-ui/LoadingScreen";
+import { AuthGate } from "../auth/AuthGate";
 
 export const SkyStrife = () => {
   const networkLayer = useStore((state) => state.networkLayer);
 
   return (
-    <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
-      <LoadingScreen networkLayer={networkLayer} usePrepTime={true} />
+    <AuthGate>
+      <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
+        <LoadingScreen networkLayer={networkLayer} usePrepTime={true} />
 
-      <UIRoot />
+        <UIRoot />
 
-      <HeadlessLayer networkLayer={networkLayer} />
-    </div>
+        <HeadlessLayer networkLayer={networkLayer} />
+      </div>
+    </AuthGate>
   );
 };

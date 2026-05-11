@@ -9,6 +9,12 @@ export default defineConfig({
     fs: {
       strict: false,
     },
+    proxy: {
+      "/api/auth": {
+        target: process.env.VITE_AUTH_SERVER_URL || "http://localhost:3002",
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     port: 3000,

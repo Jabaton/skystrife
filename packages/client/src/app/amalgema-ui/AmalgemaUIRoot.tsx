@@ -2,14 +2,9 @@ import { Header } from "./Header";
 import { useStore } from "../../useStore";
 import { InventorySidebar } from "./InventorySidebar";
 import { Transactions } from "./Transactions";
-import { WelcomeToSkyStrifeModal } from "./WelcomeModal/WelcomeToSkyStrifeModal";
 import { ComponentBrowser } from "./Admin/ComponentBrowser";
 import { MatchTable } from "./MatchTable";
-import GDPR from "./GDPR";
-import { Welcome } from "./SummonIsland/WelcomeBanner";
-import { MatchCountdown } from "./SummonIsland/MatchCountdown";
 import { OngoingMatch } from "./OngoingMatch";
-import { SeasonInactiveModal } from "./SeasonInactiveModal";
 
 export const AmalgemaUIRoot = () => {
   const layers = useStore((state) => {
@@ -37,12 +32,6 @@ export const AmalgemaUIRoot = () => {
         />
 
         <div className="grow px-8 py-6 flex flex-col">
-          <Welcome />
-
-          <MatchCountdown />
-
-          <div className="h-6" />
-
           <MatchTable />
         </div>
       </div>
@@ -50,14 +39,10 @@ export const AmalgemaUIRoot = () => {
       <InventorySidebar />
 
       <Transactions />
-      <WelcomeToSkyStrifeModal />
-      <SeasonInactiveModal />
 
       {!import.meta.env.DEV && <OngoingMatch />}
 
       <ComponentBrowser />
-
-      <GDPR />
     </div>
   );
 };
